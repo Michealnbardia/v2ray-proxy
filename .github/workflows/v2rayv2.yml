@@ -1,0 +1,41 @@
+name: V2Ray Proxy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Xray
+        run: |
+          curl -L -o xray.zip https://github.com/XTLS/Xray-core/releases/download/v26.3.27/Xray-linux-64.zip
+          unzip xray.zip && chmod +x xray
+          sudo mv xray /usr/local/bin/xray
+      - name: Generate config & start
+        run: |
+          UUID=$(cat /proc/sys/kernel/random/uuid)
+          PUBLIC_IP=$(curl -s ifconfig.me)
+
+          cat > config.json <<EOF
+          {
+            "inbounds": [{
+              "port": 443,
+              "protocol": "vless",
+              "settings": {
+                "clients": [{"id": "$UUID"}],
+                "decryption": "none"
+              },
+              "streamSettings": {
+                "network": "tcp",
+                "security": "none"
+              }
+            }],
+            "outbounds": [{"protocol": "freedom"}]
+          }
+          EOF
+
+          sudo /usr/local/bin/xray -c config.json &
+          echo "✅ Xray is running on port 443"
+          echo "🔗 VLESS link: vless://$UUID@$PUBLIC_IP:443?encryption=none&security=none&type=tcp#G2Ray"
+          sleep 10h
